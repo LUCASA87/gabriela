@@ -81,15 +81,15 @@ h3 {
   align-items: center;
 }
 
-.brand-mark {
-  width: 56px;
-  height: 56px;
-  border-radius: 18px;
-  background: linear-gradient(160deg, #f3c07a, #c45c26);
-  display: grid;
-  place-items: center;
-  color: white;
+.brand-logo {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  background: #0a0a0a;
   box-shadow: var(--shadow);
+  border: 3px solid #2a1c12;
 }
 
 .brand small {

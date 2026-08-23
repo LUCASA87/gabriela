@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronLeft, ChevronRight, Croissant, Download, Upload } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, Upload } from 'lucide-react'
 import { Dashboard } from './components/Dashboard'
 import { Gastos } from './components/Gastos'
 import { Produtos } from './components/Produtos'
@@ -57,11 +57,9 @@ export default function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <div className="brand-mark">
-            <Croissant size={28} />
-          </div>
+          <img className="brand-logo" src={`${import.meta.env.BASE_URL}logo.jpg`} alt="Gabriela — Cucas e Pães" />
           <div>
-            <small>Pães e cucas</small>
+            <small>Cucas e pães</small>
             <h1>Receita e balanço</h1>
           </div>
         </div>
