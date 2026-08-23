@@ -1,5 +1,18 @@
 import { CUCA_ID, defaultCucaRecipe } from './recipe'
-import type { AppState, Purchase, Recipe } from './types'
+import { supabase } from './supabase'
+import type {
+  AppState,
+  Expense,
+  ExpenseCategory,
+  IngredientUnit,
+  Product,
+  ProductType,
+  Purchase,
+  PurchaseUnit,
+  Recipe,
+  RecipeIngredient,
+  Sale,
+} from './types'
 import { uid } from './utils'
 
 const KEY = 'forno-gabriela-v3'
@@ -125,7 +138,7 @@ export function normalizeState(parsed: Partial<AppState> & { recipe?: unknown })
   return withDefaults(parsed)
 }
 
-export function loadState(): AppState {
+export function loadCachedState(): AppState {
   try {
     let raw = localStorage.getItem(KEY)
     if (!raw) {
@@ -145,6 +158,227 @@ export function loadState(): AppState {
   }
 }
 
-export function saveState(state: AppState): void {
+export function saveCachedState(state: AppState): void {
   localStorage.setItem(KEY, JSON.stringify(state))
+}
+
+function num(value: unknown): number {
+  return Number(value ?? 0)
+}
+
+async function upsertRows(
+  table: string,
+  rows: Record<string, unknown>[],
+  onConflict?: string,
+): Promise<void> {
+  if (rows.length === 0) return
+  const { error } = await supabase.from(table).upsert(rows, onConflict ? { onConflict } : undefined)
+  if (error) throw error
+}
+
+async function deleteMissing(
+  table: string,
+  keepIds: string[],
+): Promise<void> {
+  const { data: existing, error: readError } = await supabase.from(table).select('id')
+  if (readError) throw readError
+
+  const keep = new Set(keepIds)
+  const remove = (existing ?? [])
+    .map((row) => String((row as { id: string }).id))
+    .filter((id) => !keep.has(id))
+
+  if (remove.length === 0) return
+  const { error } = await supabase.from(table).delete().in('id', remove)
+  if (error) throw error
+}
+
+export async function loadFromDatabase(): Promise<AppState | null> {
+  const [products, recipes, ingredients, sales, expenses, purchases, settings] =
+    await Promise.all([
+      supabase.from('products').select('*'),
+      supabase.from('recipes').select('*'),
+      supabase.from('recipe_ingredients').select('*'),
+      supabase.from('sales').select('*'),
+      supabase.from('expenses').select('*'),
+      supabase.from('purchases').select('*'),
+      supabase.from('settings').select('*').eq('id', 'app').maybeSingle(),
+    ])
+
+  const firstError =
+    products.error ||
+    recipes.error ||
+    ingredients.error ||
+    sales.error ||
+    expenses.error ||
+    purchases.error ||
+    settings.error
+
+  if (firstError) throw firstError
+
+  if ((recipes.data ?? []).length === 0 && (products.data ?? []).length === 0) {
+    return null
+  }
+
+  const byRecipe = new Map<string, RecipeIngredient[]>()
+  for (const row of ingredients.data ?? []) {
+    const recipeId = String(row.recipe_id)
+    const rawId = String(row.id)
+    const key = String(
+      row.ingredient_key ||
+        (rawId.startsWith(`${recipeId}__`) ? rawId.slice(recipeId.length + 2) : rawId),
+    )
+    const item: RecipeIngredient = {
+      id: key,
+      name: row.name,
+      unit: row.unit as IngredientUnit,
+      dough: num(row.dough),
+      farofa: num(row.farofa),
+    }
+    const list = byRecipe.get(row.recipe_id) ?? []
+    list.push(item)
+    byRecipe.set(row.recipe_id, list)
+  }
+
+  return normalizeState({
+    products: (products.data ?? []).map(
+      (row): Product => ({
+        id: row.id,
+        name: row.name,
+        type: row.type as ProductType,
+        salePrice: num(row.sale_price),
+        unitCost: num(row.unit_cost),
+      }),
+    ),
+    recipes: (recipes.data ?? []).map(
+      (row): Recipe => ({
+        id: row.id,
+        name: row.name,
+        batchSize: num(row.batch_size),
+        salePrice: num(row.sale_price),
+        ingredients: byRecipe.get(row.id) ?? [],
+      }),
+    ),
+    sales: (sales.data ?? []).map(
+      (row): Sale => ({
+        id: row.id,
+        date: row.date,
+        productId: row.product_id,
+        quantity: num(row.quantity),
+        unitPrice: num(row.unit_price),
+        note: row.note ?? '',
+      }),
+    ),
+    expenses: (expenses.data ?? []).map(
+      (row): Expense => ({
+        id: row.id,
+        date: row.date,
+        category: row.category as ExpenseCategory,
+        description: row.description,
+        amount: num(row.amount),
+      }),
+    ),
+    purchases: (purchases.data ?? []).map(
+      (row): Purchase => ({
+        id: row.id,
+        date: row.date,
+        recipeId: row.recipe_id,
+        ingredientId: row.ingredient_id,
+        quantity: num(row.quantity),
+        unit: row.unit as PurchaseUnit,
+        amount: num(row.amount),
+      }),
+    ),
+    activeRecipeId: settings.data?.active_recipe_id ?? recipes.data?.[0]?.id ?? CUCA_ID,
+  })
+}
+
+export async function saveToDatabase(state: AppState): Promise<void> {
+  const recipeRows = state.recipes.map((recipe) => ({
+    id: recipe.id,
+    name: recipe.name,
+    batch_size: recipe.batchSize,
+    sale_price: recipe.salePrice,
+  }))
+  const ingredientRows = state.recipes.flatMap((recipe) =>
+    recipe.ingredients.map((item) => ({
+      id: `${recipe.id}__${item.id}`,
+      recipe_id: recipe.id,
+      ingredient_key: item.id,
+      name: item.name,
+      unit: item.unit,
+      dough: item.dough,
+      farofa: item.farofa,
+    })),
+  )
+  const productRows = state.products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    type: product.type,
+    sale_price: product.salePrice,
+    unit_cost: product.unitCost,
+  }))
+  const saleRows = state.sales.map((sale) => ({
+    id: sale.id,
+    date: sale.date,
+    product_id: sale.productId,
+    quantity: sale.quantity,
+    unit_price: sale.unitPrice,
+    note: sale.note,
+  }))
+  const expenseRows = state.expenses.map((item) => ({
+    id: item.id,
+    date: item.date,
+    category: item.category,
+    description: item.description,
+    amount: item.amount,
+  }))
+  const purchaseRows = state.purchases.map((item) => ({
+    id: item.id,
+    date: item.date,
+    recipe_id: item.recipeId,
+    ingredient_id: item.ingredientId,
+    quantity: item.quantity,
+    unit: item.unit,
+    amount: item.amount,
+  }))
+
+  await upsertRows('recipes', recipeRows)
+  await upsertRows('recipe_ingredients', ingredientRows)
+  await deleteMissing(
+    'recipe_ingredients',
+    ingredientRows.map((row) => row.id),
+  )
+  await deleteMissing(
+    'recipes',
+    recipeRows.map((row) => row.id),
+  )
+
+  await upsertRows('products', productRows)
+  await upsertRows('sales', saleRows)
+  await upsertRows('expenses', expenseRows)
+  await upsertRows('purchases', purchaseRows)
+
+  await deleteMissing(
+    'purchases',
+    purchaseRows.map((row) => row.id),
+  )
+  await deleteMissing(
+    'sales',
+    saleRows.map((row) => row.id),
+  )
+  await deleteMissing(
+    'expenses',
+    expenseRows.map((row) => row.id),
+  )
+  await deleteMissing(
+    'products',
+    productRows.map((row) => row.id),
+  )
+
+  const { error } = await supabase.from('settings').upsert({
+    id: 'app',
+    active_recipe_id: state.activeRecipeId,
+  })
+  if (error) throw error
 }
