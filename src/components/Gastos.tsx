@@ -40,7 +40,7 @@ export function Gastos({ state, month, onChange }: Props) {
     if (!description.trim() || amount <= 0) return
 
     const expense: Expense = {
-      id: editingId ?? uid(),
+      id: editingId ?? uid('g'),
       date,
       category,
       description: description.trim(),

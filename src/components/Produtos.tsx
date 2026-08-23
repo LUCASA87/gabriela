@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from 'react'
-import { recipeCost } from '../recipe'
 import type { AppState, Product, ProductType } from '../types'
-import { formatMoney, PRODUCT_TYPES, uid } from '../utils'
+import { formatMoney, PRODUCT_TYPES, slugify, uniqueId } from '../utils'
 
 interface Props {
   state: AppState
@@ -18,10 +17,6 @@ const emptyForm = {
 export function Produtos({ state, onChange }: Props) {
   const [form, setForm] = useState(emptyForm)
   const [editingId, setEditingId] = useState<string | null>(null)
-
-  function isRecipeProduct(id: string) {
-    return state.recipes.some((item) => item.id === id)
-  }
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -44,7 +39,10 @@ export function Produtos({ state, onChange }: Props) {
       })
     } else {
       const product: Product = {
-        id: uid(),
+        id: uniqueId(
+          slugify(form.name.trim()),
+          state.products.map((item) => item.id),
+        ),
         name: form.name.trim(),
         type: form.type,
         salePrice: form.salePrice,
@@ -68,7 +66,6 @@ export function Produtos({ state, onChange }: Props) {
   }
 
   function remove(id: string) {
-    if (isRecipeProduct(id)) return
     const used = state.sales.some((sale) => sale.productId === id)
     if (used && !confirm('Este produto já tem vendas. Remover mesmo assim?')) return
     onChange({ ...state, products: state.products.filter((product) => product.id !== id) })
@@ -131,7 +128,7 @@ export function Produtos({ state, onChange }: Props) {
             </label>
           </div>
           <p className="muted hint">
-            O custo dos itens com receita sai das compras. Aqui você cadastra pães e outros itens.
+            As receitas ficam na aba Receita. Aqui você cadastra só os produtos do cardápio.
           </p>
           <div className="actions">
             <button className="btn" type="submit">
@@ -177,24 +174,16 @@ export function Produtos({ state, onChange }: Props) {
                     <td>{product.name}</td>
                     <td>{PRODUCT_TYPES.find((item) => item.id === product.type)?.label}</td>
                     <td>{formatMoney(product.salePrice)}</td>
+                    <td>{formatMoney(product.unitCost)}</td>
                     <td>
-                      {isRecipeProduct(product.id)
-                        ? formatMoney(recipeCost(state, product.id) ?? 0)
-                        : formatMoney(product.unitCost)}
-                    </td>
-                    <td>
-                      {isRecipeProduct(product.id) ? (
-                        <span className="muted">Custo pela receita</span>
-                      ) : (
-                        <div className="actions">
-                          <button className="btn secondary" type="button" onClick={() => edit(product)}>
-                            Editar
-                          </button>
-                          <button className="btn danger" type="button" onClick={() => remove(product.id)}>
-                            Excluir
-                          </button>
-                        </div>
-                      )}
+                      <div className="actions">
+                        <button className="btn secondary" type="button" onClick={() => edit(product)}>
+                          Editar
+                        </button>
+                        <button className="btn danger" type="button" onClick={() => remove(product.id)}>
+                          Excluir
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

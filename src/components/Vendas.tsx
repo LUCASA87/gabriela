@@ -1,7 +1,23 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { analyzeRecipe } from '../recipe'
-import type { AppState, Sale } from '../types'
+import { analyzeRecipe, recipeType } from '../recipe'
+import type { AppState, Product, Sale } from '../types'
 import { dateForMonth, formatDate, formatMoney, inMonth, uid } from '../utils'
+
+function catalog(state: AppState): Product[] {
+  const fromRecipes = state.recipes.map(
+    (recipe): Product => ({
+      id: recipe.id,
+      name: recipe.name,
+      type: recipeType(recipe.name),
+      salePrice: recipe.salePrice,
+      unitCost: 0,
+    }),
+  )
+  const extras = state.products.filter(
+    (product) => !state.recipes.some((recipe) => recipe.id === product.id),
+  )
+  return [...fromRecipes, ...extras]
+}
 
 interface Props {
   state: AppState
@@ -10,8 +26,9 @@ interface Props {
 }
 
 export function Vendas({ state, month, onChange }: Props) {
+  const products = catalog(state)
   const defaultProduct =
-    state.products.find((item) => item.id === state.activeRecipeId) ?? state.products[0]
+    products.find((item) => item.id === state.activeRecipeId) ?? products[0]
   const [editingId, setEditingId] = useState<string | null>(null)
   const [date, setDate] = useState(() => dateForMonth(month))
   const [productId, setProductId] = useState(defaultProduct?.id ?? '')
@@ -49,7 +66,7 @@ export function Vendas({ state, month, onChange }: Props) {
 
   function applyProduct(id: string) {
     setProductId(id)
-    const product = state.products.find((item) => item.id === id)
+    const product = products.find((item) => item.id === id)
     if (product) setUnitPrice(product.salePrice)
   }
 
@@ -69,7 +86,7 @@ export function Vendas({ state, month, onChange }: Props) {
     }
 
     const sale: Sale = {
-      id: editingId ?? uid(),
+      id: editingId ?? uid('v'),
       date,
       productId,
       quantity,
@@ -102,7 +119,7 @@ export function Vendas({ state, month, onChange }: Props) {
   }
 
   const productName = (id: string) =>
-    state.products.find((item) => item.id === id)?.name ?? 'Produto removido'
+    products.find((item) => item.id === id)?.name ?? 'Produto removido'
 
   return (
     <div className="grid two">
@@ -110,8 +127,8 @@ export function Vendas({ state, month, onChange }: Props) {
         <div className="section-head">
           <h3>{editingId ? 'Editar venda' : 'Nova venda'}</h3>
         </div>
-        {state.products.length === 0 ? (
-          <p className="empty">Cadastre um produto antes de lançar vendas.</p>
+        {products.length === 0 ? (
+          <p className="empty">Cadastre um produto ou uma receita antes de lançar vendas.</p>
         ) : (
           <form className="form" onSubmit={saveSale}>
             <div className="form-row">
@@ -122,7 +139,7 @@ export function Vendas({ state, month, onChange }: Props) {
               <label className="field">
                 <span>Produto</span>
                 <select value={productId} onChange={(e) => applyProduct(e.target.value)}>
-                  {state.products.map((product) => (
+                  {products.map((product) => (
                     <option key={product.id} value={product.id}>
                       {product.name}
                     </option>

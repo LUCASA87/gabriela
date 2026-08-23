@@ -6,7 +6,6 @@ import {
   emptyRecipe,
   formatQty,
   ingredientOf,
-  recipeType,
 } from '../recipe'
 import type {
   AppState,
@@ -19,7 +18,9 @@ import {
   dateForMonth,
   formatDate,
   formatMoney,
+  slugify,
   uid,
+  uniqueId,
 } from '../utils'
 
 interface Props {
@@ -111,7 +112,7 @@ export function Receita({ state, month, onChange }: Props) {
     if (!ingredientId || quantity <= 0 || amount <= 0) return
 
     const purchase: Purchase = {
-      id: editingId ?? uid(),
+      id: editingId ?? uid('c'),
       date,
       recipeId: recipe.id,
       ingredientId,
@@ -174,22 +175,14 @@ export function Receita({ state, month, onChange }: Props) {
     event.preventDefault()
     const name = newRecipeName.trim()
     if (!name) return
-    const created = emptyRecipe(uid(), name)
-    const type = recipeType(name)
+    const created = emptyRecipe(
+      uniqueId(slugify(name), state.recipes.map((item) => item.id)),
+      name,
+    )
     onChange({
       ...state,
       recipes: [...state.recipes, created],
       activeRecipeId: created.id,
-      products: [
-        ...state.products,
-        {
-          id: created.id,
-          name,
-          type,
-          salePrice: created.salePrice,
-          unitCost: 0,
-        },
-      ],
     })
     setNewRecipeName('')
     setIngredientId('')
@@ -204,7 +197,10 @@ export function Receita({ state, month, onChange }: Props) {
       ingredients: [
         ...recipe.ingredients,
         {
-          id: uid(),
+          id: uniqueId(
+            slugify(name),
+            recipe.ingredients.map((item) => item.id),
+          ),
           name,
           unit: newItemUnit,
           dough: 0,

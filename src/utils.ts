@@ -60,8 +60,34 @@ export function formatDate(date: string): string {
   return `${d}/${m}/${y}`
 }
 
-export function uid(): string {
-  return crypto.randomUUID()
+export function slugify(value: string): string {
+  const slug = value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
+  return slug || 'item'
+}
+
+export function uniqueId(base: string, taken: Iterable<string>): string {
+  const used = new Set(taken)
+  if (!used.has(base)) return base
+  let n = 2
+  while (used.has(`${base}-${n}`)) n += 1
+  return `${base}-${n}`
+}
+
+export function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  )
+}
+
+export function uid(prefix = 'id'): string {
+  const n = Math.random().toString(36).slice(2, 8)
+  return `${prefix}_${n}`
 }
 
 export function shiftMonth(month: string, delta: number): string {

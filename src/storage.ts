@@ -13,7 +13,7 @@ import type {
   RecipeIngredient,
   Sale,
 } from './types'
-import { uid } from './utils'
+import { isUuid, slugify, uid, uniqueId } from './utils'
 
 const KEY = 'forno-gabriela-v3'
 const LEGACY_KEYS = ['forno-gabriela-v2', 'forno-gabriela-v1']
@@ -23,21 +23,14 @@ export function defaultState(): AppState {
   return {
     products: [
       {
-        id: recipe.id,
-        name: recipe.name,
-        type: 'cuca',
-        salePrice: recipe.salePrice,
-        unitCost: 0,
-      },
-      {
-        id: uid(),
+        id: 'pao-caseiro',
         name: 'Pão caseiro',
         type: 'pao',
         salePrice: 8,
         unitCost: 3.5,
       },
       {
-        id: uid(),
+        id: 'pao-frances',
         name: 'Pão francês',
         type: 'pao',
         salePrice: 1.2,
@@ -102,35 +95,82 @@ function withDefaults(parsed: Partial<AppState> & { recipe?: unknown }): AppStat
       ? parsed.activeRecipeId
       : recipes[0].id
   const purchases = migratePurchases(parsed.purchases ?? [], CUCA_ID)
-  const products = parsed.products ?? []
-  const synced = recipes.reduce((list, recipe) => {
-    const exists = list.some((product) => product.id === recipe.id)
-    if (exists) {
-      return list.map((product) =>
-        product.id === recipe.id
-          ? { ...product, name: recipe.name, salePrice: recipe.salePrice }
-          : product,
-      )
-    }
-    return [
-      {
-        id: recipe.id,
-        name: recipe.name,
-        type: 'cuca' as const,
-        salePrice: recipe.salePrice,
-        unitCost: 0,
-      },
-      ...list,
-    ]
-  }, products)
+  const products = (parsed.products ?? []).filter(
+    (product) => !recipes.some((recipe) => recipe.id === product.id),
+  )
 
-  return {
-    products: synced,
+  return prettyIds({
+    products,
     sales: parsed.sales ?? [],
     expenses: parsed.expenses ?? [],
     purchases,
     recipes,
     activeRecipeId,
+  })
+}
+
+function prettyIds(state: AppState): AppState {
+  const recipeMap = new Map<string, string>()
+  const ingredientMaps = new Map<string, Map<string, string>>()
+  const takenRecipes: string[] = []
+
+  const recipes = state.recipes.map((recipe) => {
+    const nextId = isUuid(recipe.id) ? uniqueId(slugify(recipe.name), takenRecipes) : recipe.id
+    takenRecipes.push(nextId)
+    recipeMap.set(recipe.id, nextId)
+
+    const takenItems: string[] = []
+    const itemMap = new Map<string, string>()
+    const ingredients = recipe.ingredients.map((item) => {
+      const nextItemId = isUuid(item.id) ? uniqueId(slugify(item.name), takenItems) : item.id
+      takenItems.push(nextItemId)
+      itemMap.set(item.id, nextItemId)
+      return { ...item, id: nextItemId }
+    })
+    ingredientMaps.set(recipe.id, itemMap)
+    ingredientMaps.set(nextId, itemMap)
+    return { ...recipe, id: nextId, ingredients }
+  })
+
+  const takenProducts = recipes.map((recipe) => recipe.id)
+  const productMap = new Map<string, string>()
+  const products = state.products.map((product) => {
+    const mappedRecipe = recipeMap.get(product.id)
+    const nextId =
+      mappedRecipe ??
+      (isUuid(product.id) ? uniqueId(slugify(product.name), takenProducts) : product.id)
+    takenProducts.push(nextId)
+    productMap.set(product.id, nextId)
+    return { ...product, id: nextId }
+  })
+
+  return {
+    products,
+    recipes,
+    sales: state.sales.map((sale) => ({
+      ...sale,
+      id: isUuid(sale.id) ? uid('v') : sale.id,
+      productId:
+        productMap.get(sale.productId) ??
+        recipeMap.get(sale.productId) ??
+        sale.productId,
+    })),
+    expenses: state.expenses.map((item) => ({
+      ...item,
+      id: isUuid(item.id) ? uid('g') : item.id,
+    })),
+    purchases: state.purchases.map((item) => {
+      const recipeId = recipeMap.get(item.recipeId) ?? item.recipeId
+      const ingredientId =
+        ingredientMaps.get(item.recipeId)?.get(item.ingredientId) ?? item.ingredientId
+      return {
+        ...item,
+        id: isUuid(item.id) ? uid('c') : item.id,
+        recipeId,
+        ingredientId,
+      }
+    }),
+    activeRecipeId: recipeMap.get(state.activeRecipeId) ?? state.activeRecipeId,
   }
 }
 
