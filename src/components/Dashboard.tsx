@@ -15,7 +15,7 @@ import type { AppState } from '../types'
 import { lastMonths, monthSummary } from '../ledger'
 import { EXPENSE_CATEGORIES, formatMoney, monthLabel, PRODUCT_TYPES } from '../utils'
 
-const COLORS = ['#c45c26', '#d4a056', '#3d6b4f', '#6b5344', '#b5473a', '#8a6a4f']
+const COLORS = ['#4a2a18', '#c9a227', '#6b5a1a', '#8b5a2b', '#7a2432', '#b87333']
 
 interface Props {
   state: AppState
@@ -84,21 +84,21 @@ export function Dashboard({ state, month }: Props) {
           <div className="section-head">
             <h3>Últimos 6 meses</h3>
             <div className="legend">
-              <span><i className="dot" style={{ background: '#c45c26' }} />Receita</span>
-              <span><i className="dot" style={{ background: '#b5473a' }} />Gastos</span>
-              <span><i className="dot" style={{ background: '#3d6b4f' }} />Lucro</span>
+              <span><i className="dot" style={{ background: '#4a2a18' }} />Receita</span>
+              <span><i className="dot" style={{ background: '#7a2432' }} />Gastos</span>
+              <span><i className="dot" style={{ background: '#c9a227' }} />Lucro</span>
             </div>
           </div>
           <div className="chart-box">
             <ResponsiveContainer>
               <BarChart data={history}>
-                <CartesianGrid stroke="#eadcc8" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: '#6b5344' }} />
-                <YAxis tick={{ fill: '#6b5344' }} />
+                <CartesianGrid stroke="#d4b882" vertical={false} />
+                <XAxis dataKey="label" tick={{ fill: '#6b4428' }} />
+                <YAxis tick={{ fill: '#6b4428' }} />
                 <Tooltip formatter={(value) => formatMoney(Number(value ?? 0))} />
-                <Bar dataKey="revenue" name="Receita" fill="#c45c26" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="expenses" name="Gastos" fill="#b5473a" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="profit" name="Lucro" fill="#3d6b4f" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="revenue" name="Receita" fill="#4a2a18" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="expenses" name="Gastos" fill="#7a2432" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="profit" name="Lucro" fill="#c9a227" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

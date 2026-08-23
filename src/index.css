@@ -1,18 +1,18 @@
 :root {
-  --cream: #f6efe4;
-  --paper: #fffbf4;
-  --paper-2: #f3e6d2;
-  --ink: #3a2a1f;
-  --ink-soft: #6b5344;
-  --line: #e4d3bc;
-  --copper: #c45c26;
-  --copper-dark: #9c4318;
-  --wheat: #d4a056;
-  --sage: #3d6b4f;
-  --sage-soft: #e7f0ea;
-  --rose: #b5473a;
-  --rose-soft: #f8e8e5;
-  --shadow: 0 18px 40px rgba(90, 52, 28, 0.08);
+  --cream: #f3e4c4;
+  --paper: #fff8e8;
+  --paper-2: #ebd6a8;
+  --ink: #2b1810;
+  --ink-soft: #6b4428;
+  --line: #d4b882;
+  --copper: #4a2a18;
+  --copper-dark: #24140c;
+  --wheat: #c9a227;
+  --sage: #6b5a1a;
+  --sage-soft: #f3e8c4;
+  --rose: #7a2432;
+  --rose-soft: #f3dce0;
+  --shadow: 0 18px 40px rgba(36, 20, 12, 0.14);
   --radius: 22px;
   font-family: 'Nunito Sans', 'Segoe UI', sans-serif;
   color: var(--ink);
@@ -35,8 +35,8 @@ body,
 
 body {
   background:
-    radial-gradient(1200px 500px at 10% -10%, #fff8ee 0%, transparent 55%),
-    radial-gradient(900px 420px at 100% 0%, #f3d9b8 0%, transparent 45%),
+    radial-gradient(1200px 500px at 10% -10%, #fff8e8 0%, transparent 55%),
+    radial-gradient(900px 420px at 100% 0%, #d4b24a 0%, transparent 42%),
     var(--cream);
 }
 
@@ -87,9 +87,9 @@ h3 {
   border-radius: 50%;
   object-fit: cover;
   object-position: center;
-  background: #0a0a0a;
+  background: #24140c;
   box-shadow: var(--shadow);
-  border: 3px solid #2a1c12;
+  border: 3px solid var(--wheat);
 }
 
 .brand small {
@@ -159,9 +159,9 @@ h3 {
 }
 
 .tabs button.active {
-  background: var(--paper);
-  border-color: var(--line);
-  color: var(--ink);
+  background: var(--copper);
+  border-color: var(--copper);
+  color: var(--cream);
   box-shadow: var(--shadow);
 }
 
@@ -233,8 +233,8 @@ h3 {
   gap: 6px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: #f8ead4;
-  color: var(--copper-dark);
+  background: var(--paper-2);
+  color: var(--copper);
   font-size: 0.78rem;
   font-weight: 800;
 }
@@ -248,6 +248,12 @@ h3 {
   gap: 12px;
 }
 
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .form-row.wide {
   grid-template-columns: 140px 1.3fr 1fr 110px 1fr auto;
   align-items: end;
@@ -258,7 +264,7 @@ h3 {
 }
 
 .click-row:hover td {
-  background: #f8ead4;
+  background: #f3e8c4;
 }
 
 .item-name {
@@ -292,7 +298,7 @@ h3 {
 .field textarea {
   width: 100%;
   border: 1px solid var(--line);
-  background: #fff;
+  background: #fff9ee;
   border-radius: 14px;
   padding: 11px 12px;
   outline: none;
@@ -301,8 +307,8 @@ h3 {
 .field input:focus,
 .field select:focus,
 .field textarea:focus {
-  border-color: var(--copper);
-  box-shadow: 0 0 0 3px rgba(196, 92, 38, 0.12);
+  border-color: var(--wheat);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.22);
 }
 
 .actions {
@@ -317,7 +323,7 @@ h3 {
   padding: 11px 16px;
   font-weight: 800;
   background: var(--copper);
-  color: white;
+  color: var(--cream);
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -328,8 +334,8 @@ h3 {
 }
 
 .btn.secondary {
-  background: var(--paper-2);
-  color: var(--ink);
+  background: var(--wheat);
+  color: var(--copper-dark);
 }
 
 .btn.ghost {
@@ -447,7 +453,7 @@ th {
 .recipe-input input {
   width: 110px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: #fff9ee;
   border-radius: 12px;
   padding: 8px 10px;
   text-align: right;
@@ -477,11 +483,11 @@ th {
 }
 
 .limit-row td {
-  background: #f8ead4;
+  background: #f3e8c4;
 }
 
 .editing-row td {
-  background: #e7f0ea;
+  background: #efe3b8;
 }
 
 .warn-text {
