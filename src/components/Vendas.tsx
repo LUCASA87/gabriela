@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { analyzeRecipe, recipeType } from '../recipe'
+import { adjustReadyStock, analyzeRecipe, recipeType } from '../recipe'
 import type { AppState, Product, Sale } from '../types'
 import { dateForMonth, formatDate, formatMoney, inMonth, uid } from '../utils'
 
@@ -36,7 +36,6 @@ export function Vendas({ state, month, onChange }: Props) {
   const [quantity, setQuantity] = useState(1)
   const [unitPrice, setUnitPrice] = useState(defaultProduct?.salePrice ?? analysis.salePrice)
   const [note, setNote] = useState('')
-  const [warning, setWarning] = useState('')
 
   useEffect(() => {
     if (!editingId) setDate(dateForMonth(month))
@@ -61,7 +60,6 @@ export function Vendas({ state, month, onChange }: Props) {
     setQuantity(1)
     setUnitPrice(defaultProduct?.salePrice ?? analysis.salePrice)
     setNote('')
-    setWarning('')
   }
 
   function applyProduct(id: string) {
@@ -75,16 +73,6 @@ export function Vendas({ state, month, onChange }: Props) {
     if (!productId || quantity <= 0 || unitPrice < 0) return
 
     const current = editingId ? state.sales.find((sale) => sale.id === editingId) : undefined
-    const extra = current && isRecipeProduct(current.productId) ? current.quantity : 0
-    const available = analysis.maxItems + extra
-
-    if (isRecipeProduct(productId) && quantity > available) {
-      setWarning(
-        `O estoque dá para ${available} un. Lance as compras na Receita ou diminua a quantidade.`,
-      )
-      return
-    }
-
     const sale: Sale = {
       id: editingId ?? uid('v'),
       date,
@@ -94,11 +82,15 @@ export function Vendas({ state, month, onChange }: Props) {
       note: note.trim(),
     }
 
+    let next = state
+    if (current) next = adjustReadyStock(next, current.productId, current.quantity)
+    next = adjustReadyStock(next, productId, -quantity)
+
     onChange({
-      ...state,
+      ...next,
       sales: editingId
-        ? state.sales.map((item) => (item.id === editingId ? sale : item))
-        : [sale, ...state.sales],
+        ? next.sales.map((item) => (item.id === editingId ? sale : item))
+        : [sale, ...next.sales],
     })
     resetForm()
   }
@@ -110,11 +102,12 @@ export function Vendas({ state, month, onChange }: Props) {
     setQuantity(sale.quantity)
     setUnitPrice(sale.unitPrice)
     setNote(sale.note)
-    setWarning('')
   }
 
   function removeSale(id: string) {
-    onChange({ ...state, sales: state.sales.filter((sale) => sale.id !== id) })
+    const sale = state.sales.find((item) => item.id === id)
+    const next = sale ? adjustReadyStock(state, sale.productId, sale.quantity) : state
+    onChange({ ...next, sales: next.sales.filter((item) => item.id !== id) })
     if (editingId === id) resetForm()
   }
 
@@ -191,11 +184,10 @@ export function Vendas({ state, month, onChange }: Props) {
               <p className="muted hint">
                 {analysis.recipe.name} a {formatMoney(analysis.salePrice)}. Custo atual{' '}
                 {formatMoney(analysis.costPerItem)} · lucro{' '}
-                {formatMoney(analysis.salePrice - analysis.costPerItem)} · estoque dá para{' '}
-                {analysis.maxItems} un.
+                {formatMoney(analysis.salePrice - analysis.costPerItem)} · estoque:{' '}
+                {analysis.recipe.readyStock || 0} un.
               </p>
             ) : null}
-            {warning ? <p className="warn-text">{warning}</p> : null}
           </form>
         )}
       </article>

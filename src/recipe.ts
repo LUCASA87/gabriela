@@ -47,6 +47,7 @@ export function defaultCucaRecipe(): Recipe {
     name: 'Cuca',
     batchSize: BATCH_SIZE,
     salePrice: CUCA_PRICE,
+    readyStock: 0,
     ingredients: DEFAULT_ITEMS.map((item) => ({
       ...item,
       dough: DEFAULT_DOUGH[item.id] ?? 0,
@@ -61,6 +62,7 @@ export function emptyRecipe(id: string, name: string): Recipe {
     name,
     batchSize: 10,
     salePrice: 0,
+    readyStock: 0,
     ingredients: [],
   }
 }
@@ -82,6 +84,18 @@ export function activeRecipe(state: AppState): Recipe {
 
 export function recipeById(state: AppState, id: string): Recipe | undefined {
   return state.recipes.find((item) => item.id === id)
+}
+
+export function adjustReadyStock(state: AppState, productId: string, delta: number): AppState {
+  if (!state.recipes.some((item) => item.id === productId)) return state
+  return {
+    ...state,
+    recipes: state.recipes.map((recipe) =>
+      recipe.id === productId
+        ? { ...recipe, readyStock: Math.max(0, (recipe.readyStock ?? 0) + delta) }
+        : recipe,
+    ),
+  }
 }
 
 export function ingredientOf(recipe: Recipe, id: string): RecipeIngredient | undefined {
@@ -221,6 +235,7 @@ export function analyzeRecipe(state: AppState, recipeId = state.activeRecipeId):
 
   const costPerItem = rows.reduce((sum, row) => sum + row.costInItem, 0)
   const profitPerItem = recipe.salePrice - costPerItem
+  const onHand = Math.max(0, recipe.readyStock ?? 0)
 
   return {
     recipe,
@@ -230,8 +245,8 @@ export function analyzeRecipe(state: AppState, recipeId = state.activeRecipeId):
     costPerItem,
     salePrice: recipe.salePrice,
     profitPerItem,
-    potentialRevenue: maxItems * recipe.salePrice,
-    potentialProfit: maxItems * profitPerItem,
+    potentialRevenue: onHand * recipe.salePrice,
+    potentialProfit: onHand * profitPerItem,
     itemsSold: sold,
     completeCost: usedRows.length > 0 && usedRows.every((row) => row.hasPrice),
   }

@@ -44,11 +44,20 @@ export function Receita({ state, month, onChange }: Props) {
   const [newRecipeName, setNewRecipeName] = useState('')
   const [newItemName, setNewItemName] = useState('')
   const [newItemUnit, setNewItemUnit] = useState<IngredientUnit>('g')
+  const [addReady, setAddReady] = useState('')
+  const [stockDraft, setStockDraft] = useState(() =>
+    recipe.readyStock ? String(recipe.readyStock) : '',
+  )
   const formCardRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
     if (!editingId) setDate(dateForMonth(month))
   }, [month, editingId])
+
+  useEffect(() => {
+    setStockDraft(recipe.readyStock ? String(recipe.readyStock) : '')
+    setAddReady('')
+  }, [recipe.id, recipe.readyStock])
 
   useEffect(() => {
     if (!recipe.ingredients.some((item) => item.id === ingredientId)) {
@@ -85,10 +94,38 @@ export function Receita({ state, month, onChange }: Props) {
   }
 
   function updateRecipe(next: Recipe) {
+    const exists = state.recipes.some((item) => item.id === next.id)
     setRecipes(
-      state.recipes.map((item) => (item.id === next.id ? next : item)),
+      exists
+        ? state.recipes.map((item) => (item.id === next.id ? next : item))
+        : [next, ...state.recipes],
       next.id,
     )
+  }
+
+  function parseUnits(value: string): number {
+    const parsed = Number(value.replace(',', '.').trim())
+    if (!Number.isFinite(parsed)) return 0
+    return Math.max(0, Math.floor(parsed))
+  }
+
+  function addReadyStock(event: FormEvent) {
+    event.preventDefault()
+    const extra = parseUnits(addReady)
+    if (extra <= 0) return
+    updateRecipe({
+      ...recipe,
+      readyStock: (recipe.readyStock ?? 0) + extra,
+    })
+    setAddReady('')
+  }
+
+  function saveReadyStock(event: FormEvent) {
+    event.preventDefault()
+    updateRecipe({
+      ...recipe,
+      readyStock: parseUnits(stockDraft),
+    })
   }
 
   function resetForm() {
@@ -273,11 +310,62 @@ export function Receita({ state, month, onChange }: Props) {
         </form>
       </article>
 
+      <article className="card">
+        <div className="section-head">
+          <h3>Adicionar {itemLabel.toLowerCase()} pronta</h3>
+        </div>
+        <p className="muted hint">
+          Estoque atual: <strong>{recipe.readyStock ?? 0}</strong> unidade
+          {(recipe.readyStock ?? 0) === 1 ? '' : 's'}. Digite quantas ficou pronta e toque em
+          adicionar.
+        </p>
+        <form className="form" onSubmit={addReadyStock}>
+          <div className="form-row wide">
+            <label className="field">
+              <span>Quantas unidades prontas</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={addReady}
+                onChange={(e) => setAddReady(e.target.value)}
+                placeholder="Ex.: 12"
+              />
+            </label>
+            <div className="actions">
+              <button className="btn" type="submit">
+                Adicionar ao estoque
+              </button>
+            </div>
+          </div>
+        </form>
+        <form className="form" onSubmit={saveReadyStock}>
+          <div className="form-row wide">
+            <label className="field">
+              <span>Ou corrigir o total do estoque</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={stockDraft}
+                onChange={(e) => setStockDraft(e.target.value)}
+                placeholder="Total agora"
+              />
+            </label>
+            <div className="actions">
+              <button className="btn secondary" type="submit">
+                Salvar total
+              </button>
+            </div>
+          </div>
+        </form>
+      </article>
+
       <div className="grid kpis">
         <article className="card kpi">
-          <div className="label">{itemLabel} com o estoque</div>
-          <div className="value">{analysis.maxItems}</div>
-          <p className="muted hint">já vendidas {analysis.itemsSold}</p>
+          <div className="label">{itemLabel} em estoque</div>
+          <div className="value">{recipe.readyStock ?? 0}</div>
+          <p className="muted hint">Unidades prontas para vender</p>
         </article>
         <article className="card kpi">
           <div className="label">Custo de cada {itemLabel.toLowerCase()}</div>
@@ -297,7 +385,7 @@ export function Receita({ state, month, onChange }: Props) {
           <div className="label">Lucro por {itemLabel.toLowerCase()}</div>
           <div className="value">{formatMoney(analysis.profitPerItem)}</div>
           <p className="muted hint">
-            Se vender as {analysis.maxItems}: {formatMoney(analysis.potentialProfit)}
+            Se vender as {recipe.readyStock || 0}: {formatMoney(analysis.potentialProfit)}
           </p>
         </article>
       </div>
@@ -487,6 +575,18 @@ export function Receita({ state, month, onChange }: Props) {
               onChange={(e) =>
                 updateRecipe({ ...recipe, salePrice: Math.max(0, Number(e.target.value) || 0) })
               }
+            />
+          </label>
+          <label className="field">
+            <span>Unidades prontas no estoque</span>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              value={stockDraft}
+              placeholder="Ex.: 12"
+              onChange={(e) => setStockDraft(e.target.value)}
+              onBlur={saveReadyStock}
             />
           </label>
         </div>

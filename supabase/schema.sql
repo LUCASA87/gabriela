@@ -13,6 +13,9 @@ create table if not exists public.recipes (
   sale_price numeric not null default 0
 );
 
+alter table public.recipes
+  add column if not exists ready_stock numeric not null default 0;
+
 create table if not exists public.recipe_ingredients (
   id text primary key,
   recipe_id text not null references public.recipes(id) on delete cascade,

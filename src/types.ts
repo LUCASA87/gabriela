@@ -49,6 +49,7 @@ export interface Recipe {
   name: string
   batchSize: number
   salePrice: number
+  readyStock: number
   ingredients: RecipeIngredient[]
 }
 

@@ -62,7 +62,11 @@ function migratePurchases(raw: unknown[], recipeId: string): Purchase[] {
 
 function migrateRecipes(parsed: Partial<AppState> & { recipe?: unknown }): Recipe[] {
   if (Array.isArray(parsed.recipes) && parsed.recipes.length > 0) {
-    return parsed.recipes
+    return parsed.recipes.map((recipe) => ({
+      ...recipe,
+      readyStock: Math.max(0, Number(recipe.readyStock) || 0),
+      ingredients: recipe.ingredients ?? [],
+    }))
   }
   const old = parsed.recipe as
     | {
@@ -242,7 +246,7 @@ export async function loadFromDatabase(): Promise<AppState | null> {
       supabase.from('sales').select('*'),
       supabase.from('expenses').select('*'),
       supabase.from('purchases').select('*'),
-      supabase.from('settings').select('*').eq('id', 'app').maybeSingle(),
+      supabase.from('settings').select('*'),
     ])
 
   const firstError =
@@ -258,6 +262,16 @@ export async function loadFromDatabase(): Promise<AppState | null> {
 
   if ((recipes.data ?? []).length === 0 && (products.data ?? []).length === 0) {
     return null
+  }
+
+  const settingRows = settings.data ?? []
+  const appSettings = settingRows.find((row) => row.id === 'app')
+  const stockByRecipe = new Map<string, number>()
+  for (const row of settingRows) {
+    const id = String(row.id)
+    if (id.startsWith('stock:')) {
+      stockByRecipe.set(id.slice(6), num(row.active_recipe_id))
+    }
   }
 
   const byRecipe = new Map<string, RecipeIngredient[]>()
@@ -296,6 +310,7 @@ export async function loadFromDatabase(): Promise<AppState | null> {
         name: row.name,
         batchSize: num(row.batch_size),
         salePrice: num(row.sale_price),
+        readyStock: stockByRecipe.get(row.id) ?? num(row.ready_stock),
         ingredients: byRecipe.get(row.id) ?? [],
       }),
     ),
@@ -329,7 +344,7 @@ export async function loadFromDatabase(): Promise<AppState | null> {
         amount: num(row.amount),
       }),
     ),
-    activeRecipeId: settings.data?.active_recipe_id ?? recipes.data?.[0]?.id ?? CUCA_ID,
+    activeRecipeId: appSettings?.active_recipe_id ?? recipes.data?.[0]?.id ?? CUCA_ID,
   })
 }
 
@@ -416,9 +431,16 @@ export async function saveToDatabase(state: AppState): Promise<void> {
     productRows.map((row) => row.id),
   )
 
-  const { error } = await supabase.from('settings').upsert({
-    id: 'app',
-    active_recipe_id: state.activeRecipeId,
-  })
-  if (error) throw error
+  const settingRows = [
+    { id: 'app', active_recipe_id: state.activeRecipeId },
+    ...state.recipes.map((recipe) => ({
+      id: `stock:${recipe.id}`,
+      active_recipe_id: String(recipe.readyStock ?? 0),
+    })),
+  ]
+  await upsertRows('settings', settingRows)
+  await deleteMissing(
+    'settings',
+    settingRows.map((row) => row.id),
+  )
 }

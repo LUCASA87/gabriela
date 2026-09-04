@@ -236,6 +236,24 @@ h3 {
   margin-top: 10px;
 }
 
+.kpi-input {
+  width: 100%;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  background: #fff9ee;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-family: Fraunces, Georgia, serif;
+  font-size: 1.7rem;
+  line-height: 1.2;
+  outline: none;
+}
+
+.kpi-input:focus {
+  border-color: var(--wheat);
+  box-shadow: 0 0 0 3px rgba(201, 162, 39, 0.22);
+}
+
 .kpi.profit .value {
   color: var(--sage);
 }
