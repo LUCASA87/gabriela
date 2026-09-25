@@ -210,6 +210,11 @@ function num(value: unknown): number {
   return Number(value ?? 0)
 }
 
+function asError(error: { message?: string; details?: string; hint?: string }): Error {
+  const message = [error.message, error.details, error.hint].filter(Boolean).join(' — ')
+  return new Error(message || 'Erro no banco.')
+}
+
 async function upsertRows(
   table: string,
   rows: Record<string, unknown>[],
@@ -217,7 +222,7 @@ async function upsertRows(
 ): Promise<void> {
   if (rows.length === 0) return
   const { error } = await supabase.from(table).upsert(rows, onConflict ? { onConflict } : undefined)
-  if (error) throw error
+  if (error) throw asError(error)
 }
 
 async function deleteMissing(
@@ -225,7 +230,7 @@ async function deleteMissing(
   keepIds: string[],
 ): Promise<void> {
   const { data: existing, error: readError } = await supabase.from(table).select('id')
-  if (readError) throw readError
+  if (readError) throw asError(readError)
 
   const keep = new Set(keepIds)
   const remove = (existing ?? [])
@@ -234,7 +239,7 @@ async function deleteMissing(
 
   if (remove.length === 0) return
   const { error } = await supabase.from(table).delete().in('id', remove)
-  if (error) throw error
+  if (error) throw asError(error)
 }
 
 export async function loadFromDatabase(): Promise<AppState | null> {
@@ -258,7 +263,7 @@ export async function loadFromDatabase(): Promise<AppState | null> {
     purchases.error ||
     settings.error
 
-  if (firstError) throw firstError
+  if (firstError) throw asError(firstError)
 
   if ((recipes.data ?? []).length === 0 && (products.data ?? []).length === 0) {
     return null

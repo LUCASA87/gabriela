@@ -35,9 +35,21 @@ const TABS: { id: TabId; label: string }[] = [
 type SyncStatus = 'loading' | 'saved' | 'saving' | 'error'
 
 function syncMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error)
+  let message = ''
+  if (error instanceof Error) {
+    message = error.message
+  } else if (typeof error === 'object' && error !== null) {
+    const data = error as { message?: string; details?: string; hint?: string }
+    message = [data.message, data.details, data.hint].filter(Boolean).join(' — ')
+  } else {
+    message = String(error)
+  }
+
   if (/schema cache|does not exist|PGRST205|42P01/i.test(message)) {
     return 'As tabelas ainda não existem neste projeto do Supabase.'
+  }
+  if (/Invalid API key|JWT|apikey|Failed to fetch|NetworkError|401|403/i.test(message)) {
+    return 'Não foi possível ligar o banco. O site continua em visualização com os dados locais.'
   }
   return message || 'Não foi possível ligar o banco.'
 }
@@ -189,15 +201,7 @@ export default function App() {
         </div>
       </header>
 
-      {syncError ? (
-        <p className="sync-error">
-          {syncError} Se as tabelas ainda não existem, cole o arquivo <code>supabase/schema.sql</code> no SQL
-          Editor do Supabase e recarregue a página.{' '}
-          <button type="button" className="btn ghost" onClick={() => window.location.reload()}>
-            Tentar de novo
-          </button>
-        </p>
-      ) : null}
+      {syncError ? <p className="sync-error">{syncError}</p> : null}
 
       <nav className="tabs">
         {TABS.map((item) => (
