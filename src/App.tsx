@@ -22,7 +22,7 @@ import {
   shiftMonth,
 } from './utils'
 
-const VIEW_ONLY = true
+const VIEW_ONLY = false
 
 const TABS: { id: TabId; label: string }[] = [
   { id: 'receita', label: 'Receita' },
