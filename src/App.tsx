@@ -22,6 +22,8 @@ import {
   shiftMonth,
 } from './utils'
 
+const VIEW_ONLY = true
+
 const TABS: { id: TabId; label: string }[] = [
   { id: 'receita', label: 'Receita' },
   { id: 'vendas', label: 'Vendas' },
@@ -64,7 +66,7 @@ export default function App() {
           const local = loadCachedState()
           const seed = local.recipes.length > 0 ? local : defaultState()
           setState(seed)
-          await saveToDatabase(seed)
+          if (!VIEW_ONLY) await saveToDatabase(seed)
           saveCachedState(seed)
         }
         setSync('saved')
@@ -84,7 +86,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    if (!ready.current) return
+    if (!ready.current || VIEW_ONLY) return
     saveCachedState(state)
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(() => {
@@ -103,10 +105,12 @@ export default function App() {
   }, [state])
 
   function exportData() {
+    if (VIEW_ONLY) return
     downloadJson(`balanco-paes-cucas-${month}.json`, state)
   }
 
   function importData(file: File) {
+    if (VIEW_ONLY) return
     const reader = new FileReader()
     reader.onload = () => {
       try {
@@ -132,8 +136,13 @@ export default function App() {
           ? 'Erro no banco'
           : 'Salvo no banco'
 
+  const onChange = VIEW_ONLY ? () => undefined : setState
+
   return (
-    <div className="app">
+    <div
+      className={VIEW_ONLY ? 'app view-only' : 'app'}
+      onSubmit={VIEW_ONLY ? (event) => event.preventDefault() : undefined}
+    >
       <header className="topbar">
         <div className="brand">
           <img className="brand-logo" src={`${import.meta.env.BASE_URL}logo.jpg`} alt="Gabriela — Cucas e Pães" />
@@ -203,11 +212,11 @@ export default function App() {
         ))}
       </nav>
 
-      {tab === 'receita' ? <Receita state={state} month={month} onChange={setState} /> : null}
+      {tab === 'receita' ? <Receita state={state} month={month} onChange={onChange} /> : null}
       {tab === 'dashboard' ? <Dashboard state={state} month={month} /> : null}
-      {tab === 'vendas' ? <Vendas state={state} month={month} onChange={setState} /> : null}
-      {tab === 'gastos' ? <Gastos state={state} month={month} onChange={setState} /> : null}
-      {tab === 'produtos' ? <Produtos state={state} onChange={setState} /> : null}
+      {tab === 'vendas' ? <Vendas state={state} month={month} onChange={onChange} /> : null}
+      {tab === 'gastos' ? <Gastos state={state} month={month} onChange={onChange} /> : null}
+      {tab === 'produtos' ? <Produtos state={state} onChange={onChange} /> : null}
     </div>
   )
 }

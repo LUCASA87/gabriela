@@ -71,6 +71,17 @@ h3 {
   padding: 28px 20px 64px;
 }
 
+.view-only .card button,
+.view-only .card input,
+.view-only .card select,
+.view-only .card textarea,
+.view-only .card .click-row,
+.view-only .backup,
+.view-only .sync-error .btn,
+.view-only .recipe-list .btn {
+  pointer-events: none;
+}
+
 .topbar {
   display: flex;
   align-items: flex-end;

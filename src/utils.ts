@@ -61,7 +61,7 @@ export function formatDate(date: string): string {
 }
 
 export function slugify(value: string): string {
-  const slug = value
+  const slug = String(value ?? '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()

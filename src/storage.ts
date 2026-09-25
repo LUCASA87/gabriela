@@ -97,7 +97,7 @@ function withDefaults(parsed: Partial<AppState> & { recipe?: unknown }): AppStat
   const activeRecipeId =
     recipes.some((item) => item.id === parsed.activeRecipeId) && parsed.activeRecipeId
       ? parsed.activeRecipeId
-      : recipes[0].id
+      : recipes[0]?.id ?? CUCA_ID
   const purchases = migratePurchases(parsed.purchases ?? [], CUCA_ID)
   const products = (parsed.products ?? []).filter(
     (product) => !recipes.some((recipe) => recipe.id === product.id),
@@ -125,7 +125,7 @@ function prettyIds(state: AppState): AppState {
 
     const takenItems: string[] = []
     const itemMap = new Map<string, string>()
-    const ingredients = recipe.ingredients.map((item) => {
+    const ingredients = (recipe.ingredients ?? []).map((item) => {
       const nextItemId = isUuid(item.id) ? uniqueId(slugify(item.name), takenItems) : item.id
       takenItems.push(nextItemId)
       itemMap.set(item.id, nextItemId)

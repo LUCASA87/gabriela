@@ -60,7 +60,7 @@ export function Receita({ state, month, onChange }: Props) {
   }, [recipe.id, recipe.readyStock])
 
   useEffect(() => {
-    if (!recipe.ingredients.some((item) => item.id === ingredientId)) {
+    if (!(recipe.ingredients ?? []).some((item) => item.id === ingredientId)) {
       setIngredientId(recipe.ingredients[0]?.id ?? '')
       setUnit(recipe.ingredients[0]?.unit === 'un' ? 'un' : 'kg')
     }

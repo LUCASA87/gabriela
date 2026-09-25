@@ -75,11 +75,15 @@ export function recipeType(name: string): ProductType {
 }
 
 export function activeRecipe(state: AppState): Recipe {
-  return (
+  const found =
     state.recipes.find((item) => item.id === state.activeRecipeId) ??
     state.recipes[0] ??
     defaultCucaRecipe()
-  )
+  return {
+    ...found,
+    ingredients: found.ingredients ?? [],
+    readyStock: found.readyStock ?? 0,
+  }
 }
 
 export function recipeById(state: AppState, id: string): Recipe | undefined {
