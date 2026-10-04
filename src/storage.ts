@@ -13,7 +13,7 @@ import type {
   RecipeIngredient,
   Sale,
 } from './types'
-import { isUuid, slugify, uid, uniqueId } from './utils'
+import { isUuid, sanitizeMoney, slugify, uid, uniqueId } from './utils'
 
 const KEY = 'forno-gabriela-v3'
 const LEGACY_KEYS = ['forno-gabriela-v2', 'forno-gabriela-v1']
@@ -53,9 +53,9 @@ function migratePurchases(raw: unknown[], recipeId: string): Purchase[] {
       date: buy.date,
       recipeId: buy.recipeId ?? recipeId,
       ingredientId: buy.ingredientId,
-      quantity: buy.quantity,
+      quantity: Number(buy.quantity) || 0,
       unit: buy.unit,
-      amount: buy.amount,
+      amount: sanitizeMoney(buy.amount),
     }
   })
 }
@@ -105,8 +105,15 @@ function withDefaults(parsed: Partial<AppState> & { recipe?: unknown }): AppStat
 
   return prettyIds({
     products,
-    sales: parsed.sales ?? [],
-    expenses: parsed.expenses ?? [],
+    sales: (parsed.sales ?? []).map((sale) => ({
+      ...sale,
+      quantity: Number(sale.quantity) || 0,
+      unitPrice: sanitizeMoney(sale.unitPrice),
+    })),
+    expenses: (parsed.expenses ?? []).map((item) => ({
+      ...item,
+      amount: sanitizeMoney(item.amount),
+    })),
     purchases,
     recipes,
     activeRecipeId,

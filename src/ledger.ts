@@ -1,6 +1,6 @@
 import { recipeCost } from './recipe'
 import type { AppState, ExpenseCategory, ProductType } from './types'
-import { inMonth } from './utils'
+import { inMonth, sanitizeMoney } from './utils'
 
 export interface TypeTotals {
   type: ProductType
@@ -92,12 +92,15 @@ export function monthSummary(state: AppState, month: string): MonthSummary {
     }
   }
 
-  const purchaseTotal = purchases.reduce((sum, item) => sum + item.amount, 0)
+  const purchaseTotal = purchases.reduce((sum, item) => sum + sanitizeMoney(item.amount), 0)
   const expenseTotal =
-    expenses.reduce((sum, item) => sum + item.amount, 0) + purchaseTotal
+    expenses.reduce((sum, item) => sum + sanitizeMoney(item.amount), 0) + purchaseTotal
   const byExpense = new Map<ExpenseCategory, number>()
   for (const item of expenses) {
-    byExpense.set(item.category, (byExpense.get(item.category) ?? 0) + item.amount)
+    byExpense.set(
+      item.category,
+      (byExpense.get(item.category) ?? 0) + sanitizeMoney(item.amount),
+    )
   }
   if (purchaseTotal > 0) {
     byExpense.set('ingredientes', (byExpense.get('ingredientes') ?? 0) + purchaseTotal)

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import type { AppState, Expense, ExpenseCategory } from '../types'
-import { dateForMonth, EXPENSE_CATEGORIES, formatDate, formatMoney, inMonth, uid } from '../utils'
+import { dateForMonth, EXPENSE_CATEGORIES, formatDate, formatMoney, inMonth, parseMoney, uid } from '../utils'
 
 interface Props {
   state: AppState
@@ -113,7 +113,8 @@ export function Gastos({ state, month, onChange }: Props) {
                 min={0.01}
                 step="0.01"
                 value={amount || ''}
-                onChange={(e) => setAmount(Number(e.target.value))}
+                onChange={(e) => setAmount(parseMoney(e.target.value))}
+                max={99999}
                 required
               />
             </label>

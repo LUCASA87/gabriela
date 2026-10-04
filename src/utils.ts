@@ -85,6 +85,27 @@ export function isUuid(value: string): boolean {
   )
 }
 
+export function parseMoney(value: string | number | null | undefined): number {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0
+  const raw = String(value ?? '').trim()
+  if (!raw) return 0
+  const normalized = raw.includes(',')
+    ? raw.replace(/\./g, '').replace(',', '.')
+    : raw.replace(/[^\d.-]/g, '')
+  const n = Number(normalized)
+  return Number.isFinite(n) ? n : 0
+}
+
+export function sanitizeMoney(value: unknown): number {
+  let n = parseMoney(value as string | number)
+  let steps = 0
+  while (n >= 100_000 && steps < 3) {
+    n /= 1000
+    steps += 1
+  }
+  return Math.round(Math.max(0, n) * 100) / 100
+}
+
 export function uid(prefix = 'id'): string {
   const n = Math.random().toString(36).slice(2, 8)
   return `${prefix}_${n}`

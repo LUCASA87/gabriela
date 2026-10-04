@@ -18,6 +18,7 @@ import {
   dateForMonth,
   formatDate,
   formatMoney,
+  parseMoney,
   slugify,
   uid,
   uniqueId,
@@ -438,12 +439,12 @@ export function Receita({ state, month, onChange }: Props) {
               <label className="field">
                 <span>Valor pago (R$)</span>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   min={0.01}
-                  step="0.01"
                   value={amount || ''}
-                  onChange={(e) => setAmount(Number(e.target.value))}
-                  placeholder="Quanto pagou"
+                  onChange={(e) => setAmount(parseMoney(e.target.value))}
+                  placeholder="Ex.: 35,90"
                   required
                 />
               </label>
