@@ -42,12 +42,17 @@ export function Dashboard({ state, month }: Props) {
         <article className="card kpi">
           <div className="label">Gastos do mês</div>
           <div className="value">{formatMoney(summary.expenses)}</div>
-          <p className="muted hint">Ingredientes, gás, embalagem e outros</p>
+          <p className="muted hint">
+            Compras da receita {formatMoney(summary.purchaseTotal)} + outros gastos{' '}
+            {formatMoney(summary.otherExpenses)}
+          </p>
         </article>
         <article className={`card kpi ${profitClass}`}>
           <div className="label">Lucro líquido</div>
           <div className="value">{formatMoney(summary.profit)}</div>
-          <p className="muted hint">Receita menos gastos reais</p>
+          <p className="muted hint">
+            {formatMoney(summary.revenue)} − {formatMoney(summary.expenses)}
+          </p>
         </article>
         <article className="card kpi">
           <div className="label">Margem</div>

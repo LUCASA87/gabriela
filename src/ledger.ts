@@ -27,6 +27,8 @@ export interface MonthSummary {
   margin: number
   quantity: number
   estimatedCost: number
+  purchaseTotal: number
+  otherExpenses: number
   byType: TypeTotals[]
   byProduct: ProductTotals[]
   byExpenseCategory: { category: ExpenseCategory; amount: number }[]
@@ -93,8 +95,8 @@ export function monthSummary(state: AppState, month: string): MonthSummary {
   }
 
   const purchaseTotal = purchases.reduce((sum, item) => sum + sanitizeMoney(item.amount), 0)
-  const expenseTotal =
-    expenses.reduce((sum, item) => sum + sanitizeMoney(item.amount), 0) + purchaseTotal
+  const otherExpenses = expenses.reduce((sum, item) => sum + sanitizeMoney(item.amount), 0)
+  const expenseTotal = otherExpenses + purchaseTotal
   const byExpense = new Map<ExpenseCategory, number>()
   for (const item of expenses) {
     byExpense.set(
@@ -116,6 +118,8 @@ export function monthSummary(state: AppState, month: string): MonthSummary {
     margin,
     quantity,
     estimatedCost,
+    purchaseTotal,
+    otherExpenses,
     byType: [...typeMap.values()],
     byProduct: [...productTotals.values()].sort((a, b) => b.revenue - a.revenue),
     byExpenseCategory: [...byExpense.entries()]
